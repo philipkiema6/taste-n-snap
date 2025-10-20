@@ -9,6 +9,8 @@ import { Footer } from "@/components/Footer";
 import { MenuItemType } from "@/components/MenuItem";
 import { toast } from "sonner";
 
+const MAX_QUANTITY = 99;
+
 const Index = () => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -18,6 +20,10 @@ const Index = () => {
       const existingItem = prev.find((cartItem) => cartItem.id === item.id);
       
       if (existingItem) {
+        if (existingItem.quantity >= MAX_QUANTITY) {
+          toast.info(`Maximum ${MAX_QUANTITY} items per product`);
+          return prev;
+        }
         toast.success(`Added another ${item.name} to cart!`);
         return prev.map((cartItem) =>
           cartItem.id === item.id
@@ -32,13 +38,19 @@ const Index = () => {
   };
 
   const handleUpdateQuantity = (id: string, quantity: number) => {
-    if (quantity === 0) {
+    const validQuantity = Math.min(Math.max(0, quantity), MAX_QUANTITY);
+    
+    if (quantity > MAX_QUANTITY) {
+      toast.info(`Maximum ${MAX_QUANTITY} items per product`);
+    }
+    
+    if (validQuantity === 0) {
       setCartItems((prev) => prev.filter((item) => item.id !== id));
       toast.info("Item removed from cart");
     } else {
       setCartItems((prev) =>
         prev.map((item) =>
-          item.id === id ? { ...item, quantity } : item
+          item.id === id ? { ...item, quantity: validQuantity } : item
         )
       );
     }
