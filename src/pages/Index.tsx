@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
 import { MenuGrid } from "@/components/MenuGrid";
+import { About } from "@/components/About";
+import { Contact } from "@/components/Contact";
 import { Cart, CartItem } from "@/components/Cart";
 import { Footer } from "@/components/Footer";
 import { MenuItemType } from "@/components/MenuItem";
@@ -65,6 +67,8 @@ const Index = () => {
       <main>
         <Hero onOrderClick={handleOrderNow} />
         <MenuGrid onAddToCart={handleAddToCart} />
+        <About />
+        <Contact />
       </main>
 
       <Footer />
