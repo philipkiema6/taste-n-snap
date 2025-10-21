@@ -293,7 +293,19 @@ export const Cart = ({ isOpen, onClose, items, onUpdateQuantity, onCheckout }: C
                       <p className="text-sm text-muted-foreground">Processing payment...</p>
                     </div>
                   ) : (
-                    <div id="paypal-button-container"></div>
+                    <>
+                      <div id="paypal-button-container"></div>
+                      {!import.meta.env.VITE_PAYPAL_CLIENT_ID && (
+                        <Button
+                          className="w-full"
+                          onClick={() => {
+                            toast.error("PayPal is not configured yet. Please add your PayPal Client ID in the project secrets.");
+                          }}
+                        >
+                          Checkout with PayPal
+                        </Button>
+                      )}
+                    </>
                   )}
 
                   <p className="text-xs text-center text-muted-foreground">
