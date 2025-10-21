@@ -1,6 +1,15 @@
-import { useState } from "react";
-import { Menu, X, ShoppingCart } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Menu, X, ShoppingCart, User, LogOut } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface HeaderProps {
   cartItemsCount: number;
@@ -9,6 +18,45 @@ interface HeaderProps {
 
 export const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+
+      if (session?.user) {
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .eq("role", "admin")
+          .single();
+
+        setIsAdmin(!!roleData);
+      }
+    };
+
+    checkUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user || null);
+        if (!session?.user) {
+          setIsAdmin(false);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    toast.success("Signed out successfully");
+    window.location.href = "/";
+  };
 
   const navLinks = ["Home", "Menu", "About", "Contact"];
 
@@ -17,12 +65,12 @@ export const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
       <nav className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2">
             <div className="w-10 h-10 gradient-hero rounded-full flex items-center justify-center text-primary-foreground font-bold text-xl">
               F
             </div>
             <span className="text-2xl font-bold text-foreground">FoodHub</span>
-          </div>
+          </Link>
 
           {/* Desktop Navigation */}
           <ul className="hidden md:flex items-center gap-8">
@@ -36,10 +84,30 @@ export const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
                 </a>
               </li>
             ))}
+            {user && (
+              <li>
+                <Link
+                  to="/my-orders"
+                  className="text-foreground hover:text-primary transition-smooth font-medium"
+                >
+                  My Orders
+                </Link>
+              </li>
+            )}
+            {isAdmin && (
+              <li>
+                <Link
+                  to="/admin"
+                  className="text-foreground hover:text-primary transition-smooth font-medium"
+                >
+                  Admin
+                </Link>
+              </li>
+            )}
           </ul>
 
-          {/* Cart Button */}
-          <div className="flex items-center gap-4">
+          {/* Cart & User Actions */}
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="icon"
@@ -53,6 +121,34 @@ export const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
                 </span>
               )}
             </Button>
+
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full">
+                    <User className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <Link to="/my-orders">My Orders</Link>
+                  </DropdownMenuItem>
+                  {isAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin">Admin Dashboard</Link>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button asChild variant="ghost" size="sm">
+                <Link to="/auth">Sign In</Link>
+              </Button>
+            )}
 
             {/* Mobile Menu Button */}
             <Button
@@ -80,6 +176,48 @@ export const Header = ({ cartItemsCount, onCartClick }: HeaderProps) => {
                 </a>
               </li>
             ))}
+            {user && (
+              <li>
+                <Link
+                  to="/my-orders"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="block py-2 text-foreground hover:text-primary transition-smooth font-medium"
+                >
+                  My Orders
+                </Link>
+              </li>
+            )}
+            {isAdmin && (
+              <li>
+                <Link
+                  to="/admin"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="block py-2 text-foreground hover:text-primary transition-smooth font-medium"
+                >
+                  Admin
+                </Link>
+              </li>
+            )}
+            {user ? (
+              <li>
+                <button
+                  onClick={handleSignOut}
+                  className="block w-full text-left py-2 text-foreground hover:text-primary transition-smooth font-medium"
+                >
+                  Sign Out
+                </button>
+              </li>
+            ) : (
+              <li>
+                <Link
+                  to="/auth"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="block py-2 text-foreground hover:text-primary transition-smooth font-medium"
+                >
+                  Sign In
+                </Link>
+              </li>
+            )}
           </ul>
         )}
       </nav>
